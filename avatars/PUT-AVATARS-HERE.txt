@@ -1,0 +1,7 @@
+Put your two Avaturn avatar files in this folder:
+
+  me.glb   - your avatar
+  her.glb  - her avatar
+
+The names must match the "avatar" lines in config.js.
+Until these files are here, the museum shows built-in characters instead.

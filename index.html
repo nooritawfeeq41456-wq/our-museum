@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Our Museum</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600;1,6..96,400&family=Figtree:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ink:#f6efe4; --ink-dim:#bdb2a3;
+  --glass:rgba(24,18,16,.8); --glass-2:rgba(36,28,25,.94);
+  --line:rgba(246,239,228,.14);
+  --accent:#d9b36a; --accent-ink:#2a1d09; --rose:#e48a9a; --danger:#e07a6c; --ok:#6fbf86;
+  --display:"Bodoni Moda","Didot","Bodoni 72",Georgia,serif;
+  --ui:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:#130e0c;color:var(--ink);font-family:var(--ui);font-size:14px;-webkit-font-smoothing:antialiased}
+#scene{position:fixed;inset:0;display:block;width:100%;height:100%;touch-action:none;outline:none}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+
+#title{position:fixed;inset:0;z-index:50;display:grid;place-items:center;overflow:auto;
+  background:radial-gradient(110% 80% at 50% 25%,#3a1d1c 0%,#1a0f0d 55%,#0b0706 100%);
+  padding:24px max(16px,env(safe-area-inset-right)) 24px max(16px,env(safe-area-inset-left));transition:opacity .8s,visibility .8s}
+#title.gone{opacity:0;visibility:hidden}
+.t-card{text-align:center;display:grid;gap:16px;justify-items:center;max-width:420px;width:100%}
+.t-orn{width:120px;height:18px;color:var(--accent)}
+.t-eyebrow{font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:var(--accent)}
+.t-name{font-family:var(--display);font-weight:400;font-size:clamp(52px,13vw,92px);line-height:.95;margin:0}
+.t-sub{font-family:var(--display);font-style:italic;font-size:18px;color:var(--ink-dim);margin:0}
+form.login{display:grid;gap:10px;width:100%;margin-top:6px}
+.field{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14px}
+.field:focus{outline:none;border-color:var(--accent)}
+.t-start{background:var(--accent);color:var(--accent-ink);border:0;border-radius:999px;padding:12px 40px;font-weight:600;letter-spacing:.03em}
+.t-start:hover{filter:brightness(1.08)}
+.t-start[disabled]{opacity:.6;cursor:default}
+.linkbtn{background:none;border:0;color:var(--ink-dim);text-decoration:underline;font-size:12.5px;padding:4px}
+.err{color:#f2a197;font-size:13px;min-height:1em}
+.t-hint{font-size:12px;color:var(--ink-dim);line-height:1.55;max-width:34em}
+.demo{font-size:12px;color:var(--accent);background:rgba(217,179,106,.1);border:1px solid rgba(217,179,106,.3);border-radius:10px;padding:8px 12px;line-height:1.5}
+
+.hud-top{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none;
+  padding:calc(12px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left))}
+.brand{pointer-events:auto;background:var(--glass);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:12px;padding:8px 14px;min-width:0}
+.brand b{font-family:var(--display);font-weight:400;font-size:19px;display:block;line-height:1.1}
+.brand span{font-size:11.5px;color:var(--ink-dim);display:flex;align-items:center;gap:6px}
+.brand i{width:7px;height:7px;border-radius:50%;background:#7a716a;display:inline-block}
+.brand i.on{background:var(--ok)}
+.hud-btns{display:flex;gap:8px;pointer-events:auto;flex-wrap:wrap;justify-content:flex-end}
+.chip{position:relative;background:var(--glass);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.chip:hover{background:var(--glass-2)}
+.chip svg{width:16px;height:16px;flex:none}
+.badge{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;border-radius:9px;background:var(--rose);color:#2b0d14;font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 5px}
+
+.actions{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));z-index:10;
+  display:flex;gap:6px;align-items:center;background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:18px;padding:6px;max-width:calc(100% - 24px);flex-wrap:wrap;justify-content:center}
+.act{background:transparent;border:0;border-radius:12px;padding:7px 10px;display:grid;justify-items:center;gap:2px;font-size:11px;color:var(--ink-dim);min-width:50px}
+.act svg{width:20px;height:20px;color:var(--ink)}
+.act:hover,.act.on{background:rgba(255,255,255,.08);color:var(--ink)}
+.act.on svg{color:var(--accent)}
+.say{display:flex;align-items:center;gap:6px;padding-left:4px}
+.say input{width:min(240px,42vw);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px}
+.say input:focus{outline:none;border-color:var(--accent)}
+.sep{width:1px;align-self:stretch;background:var(--line);margin:4px 2px}
+
+#labels{position:fixed;inset:0;pointer-events:none;z-index:5;overflow:hidden}
+.tag{position:absolute;transform:translate(-50%,-100%);font-size:11px;font-weight:600;background:rgba(255,252,246,.94);color:#2a2321;border-radius:999px;padding:2px 9px 2px 8px;white-space:nowrap;display:flex;align-items:center;gap:5px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.tag i{width:6px;height:6px;border-radius:50%;background:#b8aea6;display:block}
+.tag.on i{background:var(--ok)}
+.bubble{position:absolute;transform:translate(-50%,-100%);background:#fffdf8;color:#221c1a;font-size:13px;line-height:1.35;border-radius:14px;padding:7px 12px;max-width:240px;width:max-content;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.3);opacity:0;transition:opacity .25s;overflow-wrap:anywhere}
+.bubble.show{opacity:1}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);border:6px solid transparent;border-bottom:0;border-top-color:#fffdf8}
+
+.sheet{position:fixed;z-index:20;top:calc(64px + env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));bottom:calc(84px + env(safe-area-inset-bottom));
+  width:min(380px,calc(100% - 24px));background:var(--glass-2);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+.sheet header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--line);gap:10px}
+.sheet h2{margin:0;font-family:var(--display);font-weight:400;font-size:22px}
+.sheet .body{overflow:auto;padding:14px 16px 18px;display:grid;gap:16px;align-content:start;min-height:0}
+.x{background:transparent;border:0;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--ink-dim)}
+.x:hover{background:rgba(255,255,255,.08);color:var(--ink)}
+.sub{font-size:12px;color:var(--ink-dim);line-height:1.5}
+.label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:7px}
+#frameSheet{top:auto;height:auto;max-height:calc(100% - 160px)}
+.preview{aspect-ratio:4/3;max-width:100%;border-radius:10px;background:#0e0a09;display:grid;place-items:center;overflow:hidden;border:1px solid var(--line)}
+.preview img{width:100%;height:100%;object-fit:contain}
+.preview .empty{color:var(--ink-dim);font-size:13px;text-align:center;line-height:1.5;padding:16px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:rgba(255,255,255,.06);border-radius:10px;padding:9px 14px;font-weight:500;font-size:13px;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{background:rgba(255,255,255,.12)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--danger)}
+.btn.danger.confirm{background:var(--danger);color:#1c0f0c;border-color:var(--danger)}
+.btn[disabled]{opacity:.5;cursor:default}
+.note{font-size:12px;color:var(--ink-dim);background:rgba(255,255,255,.04);border-radius:10px;padding:9px 11px;line-height:1.5}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px}
+.slot{aspect-ratio:3/4;border-radius:6px;border:2px solid #6b5326;background:#1a1210 center/cover no-repeat;display:grid;place-items:center;color:var(--ink-dim);font-size:20px;position:relative;padding:0}
+.slot.wide{aspect-ratio:4/3}
+.slot.filled{border-color:var(--accent)}
+.slot .flw{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--rose);box-shadow:0 0 0 2px #241a17}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pills button{border:1px solid var(--line);background:transparent;border-radius:999px;padding:6px 11px;font-size:12.5px;color:var(--ink-dim)}
+.pills button.on{background:var(--ink);color:#171514;border-color:var(--ink)}
+.sw{display:flex;flex-wrap:wrap;gap:7px}
+.sw button{width:26px;height:26px;border-radius:50%;border:2px solid transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);padding:0}
+.sw button.on{border-color:var(--ink)}
+.tabs{display:flex;background:rgba(255,255,255,.05);border-radius:10px;padding:3px;gap:3px}
+.tabs button{flex:1;border:0;background:transparent;border-radius:8px;padding:8px;font-weight:500;color:var(--ink-dim)}
+.tabs button.on{background:rgba(255,255,255,.12);color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+
+/* chat */
+#chatSheet .body{display:flex;flex-direction:column;gap:8px;flex:1;padding-bottom:8px}
+.msg{max-width:82%;padding:8px 12px;border-radius:14px;line-height:1.4;overflow-wrap:anywhere;background:rgba(255,255,255,.08)}
+.msg.mine{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px}
+.msg.theirs{align-self:flex-start;border-bottom-left-radius:4px}
+.msg small{display:block;font-size:10.5px;opacity:.65;margin-top:3px}
+.chat-empty{color:var(--ink-dim);font-size:13px;text-align:center;margin:auto 0;line-height:1.5}
+form.chatform{display:flex;gap:8px;padding:10px 12px 12px;border-top:1px solid var(--line)}
+form.chatform input{flex:1;min-width:0}
+
+#lightbox{position:fixed;inset:0;z-index:40;background:rgba(12,8,7,.95);display:grid;grid-template-rows:auto 1fr auto;justify-items:center;gap:12px;
+  padding:calc(16px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+#lightbox .lb-label{font-family:var(--display);font-style:italic;font-size:15px;color:var(--accent)}
+#lightbox .lb-frame{min-height:0;display:grid;place-items:center;max-width:100%}
+#lightbox img{max-width:min(92vw,1100px);max-height:100%;border:16px solid #b8903f;outline:3px solid #6b4f1c;box-shadow:inset 0 0 0 4px #e3c27a,0 30px 80px rgba(0,0,0,.6);background:#fff}
+#lightbox .lb-cap{font-family:var(--display);font-size:20px;text-align:center;max-width:40em}
+#lightbox .x{position:absolute;top:calc(12px + env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));width:40px;height:40px;background:rgba(255,255,255,.08)}
+#toast{position:fixed;left:50%;top:calc(76px + env(safe-area-inset-top));transform:translateX(-50%);z-index:60;background:var(--ink);color:#171514;border-radius:999px;padding:9px 16px;font-size:13px;font-weight:500;max-width:calc(100% - 32px);text-align:center;opacity:0;transition:opacity .3s;pointer-events:none}
+#toast.show{opacity:1}
+#loading{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);z-index:9;font-size:12px;color:var(--ink-dim);background:var(--glass);padding:6px 12px;border-radius:999px}
+#help ul{margin:0;padding-left:18px;display:grid;gap:7px;line-height:1.45;color:var(--ink-dim)}
+#help b{color:var(--ink);font-weight:600}
+@media (max-width:600px){
+  .act span{display:none} .act{min-width:40px;padding:8px}
+  .chip .lbl{display:none} .brand b{font-size:16px}
+  .sheet{top:auto;height:72%;bottom:calc(80px + env(safe-area-inset-bottom))}
+}
+@media (prefers-reduced-motion:reduce){#title,.bubble,#toast{transition:none}}
+</style>
+</head>
+<body>
+<canvas id="scene" tabindex="0" aria-label="3D museum. Click the floor to walk, drag to look around."></canvas>
+<div id="labels"></div>
+
+<section id="title" aria-label="Welcome">
+  <div class="t-card">
+    <svg class="t-orn" viewBox="0 0 120 18" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M2 9h40M78 9h40"/><path d="M60 2c-6 0-9 7-15 7 6 0 9 7 15 7 6 0 9-7 15-7-6 0-9-7-15-7Z"/><circle cx="60" cy="9" r="1.8" fill="currentColor"/></svg>
+    <div class="t-eyebrow">A permanent collection</div>
+    <h1 class="t-name">Our Museum</h1>
+    <p class="t-sub" id="titleNames"></p>
+    <div class="demo" id="demoNote" hidden>Demo mode: Firebase isn't connected yet, so this runs on this computer only. Follow README.md to connect it.</div>
+    <form class="login" id="loginForm" hidden>
+      <label class="label" for="email" style="margin:0;text-align:left">Email</label>
+      <input class="field" id="email" type="email" autocomplete="username" required>
+      <label class="label" for="password" style="margin:0;text-align:left">Password</label>
+      <input class="field" id="password" type="password" autocomplete="current-password" required>
+      <div class="err" id="loginErr" role="alert"></div>
+      <button class="t-start" id="loginBtn" type="submit">Sign in</button>
+      <button class="linkbtn" id="forgotBtn" type="button">Forgot password?</button>
+    </form>
+    <div id="enterBox" hidden style="display:grid;gap:12px;justify-items:center">
+      <div class="t-hint" id="welcomeLine"></div>
+      <button class="t-start" id="startBtn">Enter the museum</button>
+    </div>
+    <p class="t-hint">Click the floor to walk, drag to look around. Click any frame to add a photo, swap it, or take it down.</p>
+  </div>
+</section>
+
+<div class="hud-top">
+  <div class="brand"><b>Our Museum</b><span><i id="partnerDot"></i><span id="partnerLine"></span></span></div>
+  <div class="hud-btns">
+    <button class="chip" id="chatBtn" aria-label="Chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg><span class="lbl">Chat</span><span class="badge" id="chatBadge" hidden>0</span></button>
+    <button class="chip" id="photosBtn" aria-label="Photos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg><span class="lbl">Photos</span></button>
+    <button class="chip" id="charsBtn" aria-label="Characters"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="8" r="3"/><circle cx="16.5" cy="8.5" r="2.6"/><path d="M2.5 20c.6-3.4 2.8-5.5 5.5-5.5s4.9 2.1 5.5 5.5M13.5 15c.9-.6 1.9-.9 3-.9 2.4 0 4.3 1.9 4.9 5"/></svg><span class="lbl">Characters</span></button>
+    <button class="chip" id="snapBtn" aria-label="Save a picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span class="lbl">Picture</span></button>
+    <button class="chip" id="helpBtn" aria-label="Help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4"/><circle cx="12" cy="16.8" r=".6" fill="currentColor"/></svg><span class="lbl">Help</span></button>
+  </div>
+</div>
+
+<div class="actions" role="toolbar" aria-label="Actions">
+  <button class="act" id="aWave"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11m0-6.5a1.5 1.5 0 0 1 3 0V11m0-5a1.5 1.5 0 0 1 3 0v7c0 4-2.5 7-6.5 7-2.6 0-4.4-1.4-5.6-3.6L3.6 13.6a1.5 1.5 0 0 1 2.6-1.5L8 15"/></svg><span>Wave</span></button>
+  <button class="act" id="aDance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg><span>Dance</span></button>
+  <button class="act" id="aSit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 12h18M5 12v6m14-6v6M4 16h16"/></svg><span>Sit</span></button>
+  <button class="act" id="aLove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/></svg><span>Love</span></button>
+  <button class="act" id="aSwitch" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg><span>Switch</span></button>
+  <div class="sep"></div>
+  <form class="say" id="sayForm"><input id="sayIn" maxlength="300" placeholder="Say something…" autocomplete="off" aria-label="Say something"></form>
+</div>
+
+<aside class="sheet" id="frameSheet" hidden aria-label="Frame">
+  <header><h2 id="fsTitle">Frame</h2><button class="x" id="fsClose" aria-label="Close">✕</button></header>
+  <div class="body">
+    <div class="preview" id="fsPreview"></div>
+    <div class="row">
+      <button class="btn primary" id="fsAdd">Add photo</button>
+      <button class="btn" id="fsView">View up close</button>
+      <button class="btn danger" id="fsRemove">Remove</button>
+    </div>
+    <div>
+      <div class="label">Flowers and shapes around the frame</div>
+      <div class="pills" id="fsDeco"></div>
+    </div>
+    <div id="fsCapWrap">
+      <div class="label"><label for="fsCaption">Caption on the brass plaque</label></div>
+      <input class="field" id="fsCaption" maxlength="70" placeholder="Our first date, Tucson">
+    </div>
+    <div class="sub" id="fsBy"></div>
+  </div>
+</aside>
+<input type="file" id="fileIn" accept="image/*" hidden>
+
+<aside class="sheet" id="photosSheet" hidden aria-label="Photos">
+  <header><h2>Photos</h2><button class="x" data-close aria-label="Close">✕</button></header>
+  <div class="body">
+    <div class="sub"><span id="photoCount"></span> Tap a frame to walk there. A pink dot means it has flowers or shapes around it.</div>
+    <div id="photoGroups" style="display:grid;gap:16px"></div>
+  </div>
+</aside>
+
+<aside class="sheet" id="chatSheet" hidden aria-label="Chat">
+  <header><h2>Chat</h2><button class="x" data-close aria-label="Close">✕</button></header>
+  <div class="body" id="chatList"><div class="chat-empty" id="chatEmpty">No messages yet. Say hi.</div></div>
+  <form class="chatform" id="chatForm"><input class="field" id="chatIn" maxlength="500" placeholder="Write a message…" autocomplete="off" aria-label="Message"><button class="btn primary" type="submit">Send</button></form>
+</aside>
+
+<aside class="sheet" id="charsSheet" hidden aria-label="Characters">
+  <header><h2>Characters</h2><button class="x" data-close aria-label="Close">✕</button></header>
+  <div class="body">
+    <div class="note" id="glbNote"></div>
+    <div class="tabs" id="charTabs"><button data-who="a" class="on" id="tabA">Me</button><button data-who="b" id="tabB">Her</button></div>
+    <div id="charEditor" style="display:grid;gap:16px"></div>
+  </div>
+</aside>
+
+<aside class="sheet" id="help" hidden aria-label="Help">
+  <header><h2>How to visit</h2><button class="x" data-close aria-label="Close">✕</button></header>
+  <div class="body">
+    <ul>
+      <li><b>Walk:</b> click or tap the floor. On a keyboard, use WASD or the arrow keys.</li>
+      <li><b>Look around:</b> drag anywhere. Scroll or pinch to zoom.</li>
+      <li><b>Photos:</b> click a frame to add, replace or remove its photo, and to put roses or gold hearts around it. You both see changes right away.</li>
+      <li><b>Chat:</b> type at the bottom or open Chat. Messages also pop up over your character.</li>
+      <li><b>Together:</b> when you're both signed in, you each control your own character and see each other move.</li>
+      <li>Keys: 1 wave, 2 dance, 3 sit, 4 love.</li>
+    </ul>
+    <button class="btn" id="signOutBtn" hidden>Sign out</button>
+  </div>
+</aside>
+
+<div id="lightbox" hidden>
+  <div class="lb-label">Viewing</div>
+  <div class="lb-frame"><img id="lbImg" alt=""></div>
+  <div class="lb-cap" id="lbCap"></div>
+  <button class="x" id="lbClose" aria-label="Close">✕</button>
+</div>
+<div id="toast" role="status"></div>
+<div id="loading" hidden></div>
+
+<script src="config.js"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

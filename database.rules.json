@@ -1,0 +1,17 @@
+{
+  "rules": {
+    ".read": "auth != null && (auth.token.email == 'nooritawfeeq41456@gmail.com' || auth.token.email == 'zamanimahsa177@gmail.com')",
+    ".write": "auth != null && (auth.token.email == 'nooritawfeeq41456@gmail.com' || auth.token.email == 'zamanimahsa177@gmail.com')",
+    "photos": {
+      "$id": {
+        ".validate": "newData.isString() && newData.val().length < 1500000"
+      }
+    },
+    "chat": {
+      ".indexOn": ["at"],
+      "$id": {
+        ".validate": "newData.hasChildren(['who', 'text']) && newData.child('text').isString() && newData.child('text').val().length <= 500"
+      }
+    }
+  }
+}
