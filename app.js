@@ -663,6 +663,12 @@ function animate(av, dt){
   } else if (av.action === 'sit'){
     T.hipL = T.hipR = -1.5; T.kneeL = T.kneeR = 1.5; T.by = av.glb ? (.47 - av.glb.hipY) : -.45;
     T.shLx = T.shRx = -.5; T.elLx = T.elRx = -.75; T.shLz = .14; T.shRz = -.14; T.hx = .04 + Math.sin(t*1.1)*.02; T.hy = fem ? -.18 : .18;
+    if (av.kissUntil > t){ const sd = av.kissSide || 1; T.bz = -sd*.26; T.hz = -sd*.18; T.hy = sd*.55; T.hx = .02; }
+  } else if (av.action === 'kiss'){
+    T.bx = .09; T.hx = fem ? -.14 : .2; T.hz = .14; T.by = fem ? .02 : -.01;
+    if (fem){ T.shLx = T.shRx = -1.15; T.shLz = .55; T.shRz = -.55; T.elLx = T.elRx = -1.15; }
+    else { T.shLx = T.shRx = -.6; T.shLz = .32; T.shRz = -.32; T.elLx = T.elRx = -.55; }
+    if (t - av.actionT > 2.8){ av.action = 'idle'; av.lookAt = null; }
   } else if (av.action === 'dance'){
     const b = t*5.6; T.by = Math.abs(Math.sin(b))*.05; T.bz = Math.sin(b/2)*.1; T.byaw = Math.sin(t*1.5)*.45;
     T.kneeL = .18 + Math.max(0,Math.sin(b))*.3; T.kneeR = .18 + Math.max(0,-Math.sin(b))*.3; T.hipL = -T.kneeL*.5; T.hipR = -T.kneeR*.5;
@@ -705,7 +711,9 @@ function stepAvatar(av, dt){
     else { const sp = Math.min(SPEED, d*4 + .35) * dt, np = p.clone(); np.x += dx/d*sp; np.z += dz/d*sp; resolve(np);
       moving = Math.hypot(np.x-p.x, np.z-p.z) > .0015; p.copy(np); faceTo(av, Math.atan2(dx, dz), dt);
       if (d > av.lastDist - .003) av.stuck += dt; else av.stuck = Math.max(0, av.stuck - dt*2);
-      av.lastDist = d; if (av.stuck > 1.2){ av.target = null; av.onArrive = null; av.stuck = 0; av._goingToSit = false; } }
+      av.lastDist = d; if (av.stuck > 1.2){
+        av.target = null; av.stuck = 0; const cb = av.onArrive; av.onArrive = null;
+        if (av._goingToSit && cb) cb(); else av._goingToSit = false; } }
   }
   av.moving = moving; if (!moving && av.lookAt != null) faceTo(av, av.lookAt, dt, 6);
   animate(av, dt);
@@ -719,7 +727,7 @@ const keys = {};
 addEventListener('keydown', e => {
   if (e.target.matches('input, textarea')) return;
   const k = e.key.toLowerCase();
-  if (k === '1') doWave(); else if (k === '2') doDance(); else if (k === '3') doSit(); else if (k === '4') doLove(true); else if (k === 'escape') closeAll();
+  if (k === '1') doWave(); else if (k === '2') doDance(); else if (k === '3') doSit(); else if (k === '4') doLove(true); else if (k === '5') doKiss(); else if (k === 'escape') closeAll();
   keys[k] = true;
 });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
@@ -729,7 +737,7 @@ function keyMove(dt){
   if (keys.w || keys.arrowup) f += 1; if (keys.s || keys.arrowdown) f -= 1; if (keys.a || keys.arrowleft) s -= 1; if (keys.d || keys.arrowright) s += 1;
   if (!f && !s) return;
   const av = me(); if (av.action === 'sit' || av.action === 'dance') av.action = 'idle';
-  av.target = null; av.onArrive = null; av.seat = null; av.lookAt = null; av._slide = null; av._goingToSit = false;
+  av.target = null; av.onArrive = null; av.seat = null; av.lookAt = null; av._slide = null; av._goingToSit = false; av._kissing = false; if (av.action === 'kiss') av.action = 'idle';
   const fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw); let mx = fx*f - fz*s, mz = fz*f + fx*s; const l = Math.hypot(mx, mz); mx /= l; mz /= l;
   const p = av.root.position.clone(); p.x += mx*SPEED*dt; p.z += mz*SPEED*dt; resolve(p); av.root.position.copy(p); faceTo(av, Math.atan2(mx, mz), dt); av.keyMoving = true;
 }
@@ -737,7 +745,11 @@ function sitDown(av, bi, idx){ const s = benches[bi].seats[idx]; av.root.positio
 function slideTo(av, tgt, cb){ const start = av.root.position.clone(); let u = 0; av.target = null;
   av._slide = dt => { u = Math.min(1, u + dt*2); av.root.position.lerpVectors(start, tgt, u); av.moving = u < 1; if (u >= 1){ av._slide = null; cb && cb(); } }; }
 function goSitAt(av, bi, i){ if (av.action === 'sit') av.action = 'idle'; av._goingToSit = true; av.lookAt = null;
-  const b = benches[bi]; walkTo(av, b.seats[i].pos.clone().addScaledVector(b.fwd, .5), () => slideTo(av, b.seats[i].pos, () => sitDown(av, bi, i))); av._goingToSit = true; }
+  const b = benches[bi], seat = b.seats[i].pos;
+  // approach from whichever side of the bench is closer, then slide onto the seat
+  const front = seat.clone().addScaledVector(b.fwd, .55), back = seat.clone().addScaledVector(b.fwd, -.6);
+  const near = av.root.position.distanceTo(front) <= av.root.position.distanceTo(back) ? front : back;
+  walkTo(av, near, () => slideTo(av, seat, () => sitDown(av, bi, i))); av._goingToSit = true; }
 function goSit(bi){
   const b = benches[bi], m = me(), o = other();
   const idx = m.root.position.distanceTo(b.seats[0].pos) < m.root.position.distanceTo(b.seats[1].pos) ? 0 : 1;
@@ -765,17 +777,52 @@ function doLove(mine){
   const m = me(); if (m.action !== 'sit'){ m.lookAt = Math.atan2(other().root.position.x - m.root.position.x, other().root.position.z - m.root.position.z); loveHold = 2.5; }
   if (!partnerOnline()){ const o = other(); if (o.action !== 'sit') o.lookAt = Math.atan2(m.root.position.x - o.root.position.x, m.root.position.z - o.root.position.z); }
 }
+let kissAt = 0;
+function doKiss(){
+  const m = me(), o = other();
+  if (m.action === 'sit' || o.action === 'sit'){ beginKiss(true); return; }
+  if (m.action === 'dance' || m.action === 'wave') m.action = 'idle';
+  const d = m.root.position.distanceTo(o.root.position);
+  if (d > .5){
+    const dir = m.root.position.clone().sub(o.root.position).setY(0); if (dir.lengthSq() < 1e-4) dir.set(0,0,1); dir.normalize();
+    const spot = o.root.position.clone().addScaledVector(dir, .42);
+    m.lookAt = null; m._kissing = true; walkTo(m, spot, () => { m._kissing = false; beginKiss(true); });
+  } else beginKiss(true);
+}
+function beginKiss(mine){
+  const A = avatars.a, B = avatars.b;
+  for (const [x, y] of [[A, B], [B, A]]){
+    const remoteDriven = x === other() && partnerOnline();
+    if (x.action === 'sit'){
+      const ry = x.root.rotation.y, rel = y.root.position.clone().sub(x.root.position);
+      x.kissSide = Math.sign(rel.x*Math.cos(ry) - rel.z*Math.sin(ry)) || 1; x.kissUntil = x.t + 2.8;
+    } else {
+      if (!remoteDriven) x.target = null;
+      x.lookAt = Math.atan2(y.root.position.x - x.root.position.x, y.root.position.z - x.root.position.z);
+      x.action = 'kiss'; x.actionT = x.t;
+    }
+  }
+  if (mine){ kissAt = Date.now(); sendPresence(true); }
+  setTimeout(() => { burstHearts(); }, 600); setAct();
+}
+function burstHearts(){
+  const mid = avatars.a.root.position.clone().add(avatars.b.root.position).multiplyScalar(.5);
+  for (let i=0;i<20;i++){ const s = new THREE.Sprite(new THREE.SpriteMaterial({map:heartTex, transparent:true, depthWrite:false}));
+    s.position.set(mid.x + rand(-.35,.35), 1.55 + Math.random()*.25, mid.z + rand(-.35,.35)); s.scale.setScalar(rand(.07,.16));
+    s.userData = {vy:rand(.35,.8), life:0, max:rand(2,3.2), sway:Math.random()*TAU}; scene.add(s); hearts.push(s); }
+}
 function stepHearts(dt){ for (let i=hearts.length-1;i>=0;i--){ const h = hearts[i], u = h.userData; u.life += dt; h.position.y += u.vy*dt; h.position.x += Math.sin(u.life*3 + u.sway)*dt*.2;
   h.material.opacity = Math.max(0, 1 - u.life/u.max); if (u.life > u.max){ scene.remove(h); h.material.dispose(); hearts.splice(i,1); } } }
 function say(av, text){ av.bub.textContent = text; av.bub.classList.add('show'); av.bubT = Math.max(3.5, Math.min(9, text.length*.09)); }
 
 /* partner: follows you when they're away, mirrors their real moves when they're online */
-let followIdle = 0, lastRemoteWave = 0, lastRemoteLove = 0;
+let followIdle = 0, lastRemoteWave = 0, lastRemoteLove = 0, lastRemoteKiss = 0;
 function partnerOnline(){ const r = other().remote; return !!(r && r.online); }
 function driveRemote(av, dt){
   const r = av.remote;
   if (r.wave && r.wave !== lastRemoteWave){ lastRemoteWave = r.wave; if (Date.now() - r.wave < 8000){ av.action = 'wave'; av.actionT = av.t; } }
   if (r.love && r.love !== lastRemoteLove){ lastRemoteLove = r.love; if (Date.now() - r.love < 8000) doLove(false); }
+  if (r.kiss && r.kiss !== lastRemoteKiss){ lastRemoteKiss = r.kiss; if (Date.now() - r.kiss < 8000) beginKiss(false); }
   if (r.act === 'sit' && r.seat){ if (av.action !== 'sit' || av.seat?.bench !== r.seat[0] || av.seat?.idx !== r.seat[1]) sitDown(av, r.seat[0], r.seat[1]); return; }
   if (av.action === 'sit'){ av.action = 'idle'; av.seat = null; }
   const tgt = new THREE.Vector3(r.x, 0, r.z), d = av.root.position.distanceTo(tgt);
@@ -783,12 +830,14 @@ function driveRemote(av, dt){
   else if (d > .1){ if (!av.target || av.target.distanceTo(tgt) > .05) walkTo(av, tgt); }
   else { av.target = null; av.lookAt = r.ry; }
   if (r.act === 'dance'){ if (!av.target) av.action = 'dance'; } else if (av.action === 'dance') av.action = 'idle';
+  if (av.action === 'kiss' && av.target) av.target = null;
 }
 function partnerThink(dt){
   const pa = other(), le = me();
   if (pa.remote && pa.remote.online){ driveRemote(pa, dt); return; }
   if (pa.action === 'sit' && le.action === 'sit') return;
   if (le.action === 'sit' || le._goingToSit || pa._goingToSit) return;
+  if (le.action === 'kiss' || pa.action === 'kiss' || le._kissing) return;
   if (pa.action === 'sit'){ pa.action = 'idle'; const b = benches[pa.seat?.bench]; if (b) pa.root.position.addScaledVector(b.fwd, .6); pa.seat = null; }
   if (pa._slide) return;
   const ry = le.root.rotation.y, right = new THREE.Vector3(-Math.cos(ry), 0, Math.sin(ry)), side = pa.who === 'b' ? 1 : -1;
@@ -832,7 +881,7 @@ function handleClick(x, y){
   const u = hit.object.userData;
   if (u.frameId){ openFrame(u.frameId, true); return; }
   if (u.bench != null){ goSit(u.bench); return; }
-  if (u.floor){ const le = me(); if (le.action === 'sit') standUp(); le._goingToSit = false; other()._goingToSit = false; le.lookAt = null;
+  if (u.floor){ const le = me(); le._kissing = false; if (le.action === 'kiss') le.action = 'idle'; if (le.action === 'sit') standUp(); le._goingToSit = false; other()._goingToSit = false; le.lookAt = null;
     const p = hit.point.clone(); resolve(p); walkTo(le, p); setAct(); ring.position.set(p.x, .012, p.z); ringT = 0; }
 }
 const ringMat = new THREE.MeshBasicMaterial({color:'#f2d58f', transparent:true, opacity:0, depthWrite:false});
@@ -909,7 +958,7 @@ let lastSent = '', lastSentAt = 0;
 function sendPresence(force){
   if (!fb) return;
   const m = me(), now = performance.now(); if (!force && now - lastSentAt < 160) return;
-  const p = {x:+m.root.position.x.toFixed(2), z:+m.root.position.z.toFixed(2), ry:+m.root.rotation.y.toFixed(2), act: m.action === 'wave' ? 'idle' : m.action, seat: m.action === 'sit' && m.seat ? [m.seat.bench, m.seat.idx] : null, wave: waveAt, love: loveAt, online: true};
+  const p = {x:+m.root.position.x.toFixed(2), z:+m.root.position.z.toFixed(2), ry:+m.root.rotation.y.toFixed(2), act: (m.action === 'wave' || m.action === 'kiss') ? 'idle' : m.action, seat: m.action === 'sit' && m.seat ? [m.seat.bench, m.seat.idx] : null, wave: waveAt, love: loveAt, kiss: kissAt, online: true};
   const key = JSON.stringify(p); if (!force && key === lastSent) return;
   lastSent = key; lastSentAt = now; p.at = fb.D.serverTimestamp(); fb.D.set(fb.ref('presence/' + myRole), p).catch(()=>{});
 }
@@ -987,7 +1036,7 @@ $('#charsBtn').addEventListener('click', () => toggleSheet('#charsSheet', render
 $('#helpBtn').addEventListener('click', () => toggleSheet('#help'));
 $('#chatBtn').addEventListener('click', () => toggleSheet('#chatSheet', () => { unread = 0; updateBadge(); const l = $('#chatList'); l.scrollTop = l.scrollHeight; setTimeout(() => $('#chatIn').focus(), 50); }));
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeAll()));
-$('#aWave').onclick = doWave; $('#aDance').onclick = doDance; $('#aSit').onclick = doSit; $('#aLove').onclick = () => doLove(true);
+$('#aWave').onclick = doWave; $('#aDance').onclick = doDance; $('#aSit').onclick = doSit; $('#aLove').onclick = () => doLove(true); $('#aKiss').onclick = doKiss;
 $('#sayForm').addEventListener('submit', e => { e.preventDefault(); sendChat($('#sayIn').value); $('#sayIn').value = ''; });
 $('#chatForm').addEventListener('submit', e => { e.preventDefault(); sendChat($('#chatIn').value); $('#chatIn').value = ''; });
 $('#snapBtn').addEventListener('click', () => { renderer.render(scene, camera);
@@ -1120,7 +1169,7 @@ function loop(){
   for (const av of Object.values(avatars)){ placeLabel(av, av.tag, .06); if (av.bubT > 0){ av.bubT -= dt; placeLabel(av, av.bub, .3); if (av.bubT <= 0) av.bub.classList.remove('show'); } }
   requestAnimationFrame(loop);
 }
-window.__museum = {cam, avatars, frames, me};
+window.__museum = {cam, avatars, frames, me, doKiss};
 cam.target.set(.5, 1.45, 8.9);
 document.fonts?.ready.then(() => { drawNames(); makeEmpty(); frames.forEach(f => { if (!f.loadedPid){ f.pic.material.map = EMPTY; f.pic.material.needsUpdate = true; } f.plaque.userData.cap = null; drawPlaque(f); }); });
 loop(); boot();
